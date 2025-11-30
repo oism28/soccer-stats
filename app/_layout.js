@@ -1,32 +1,23 @@
-import { Link, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Pressable } from "react-native";
-import { InfoIcon } from "../components/Icons";
-import { Logo } from "../components/Logo";
+
 import { ScreenLayout } from "../components/ScreenLayout";
 import "../global.css";
 
 export default function Layout() {
   return (
     <ScreenLayout>
-      <StatusBar style="light" />
+      <StatusBar style="light" backgroundColor="#040D12" />
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: "black",
+            backgroundColor: "#040D12",
+            borderBottomWidth: 1,
+            borderBottomColor: "#183D3D",
           },
-          headerTintColor: "white",
+          headerTintColor: "#93B1A6",
           headerTitle: "",
           headerBackTitle: "",
-
-          headerLeft: () => <Logo />,
-          headerRight: () => (
-            <Link asChild href="/about">
-              <Pressable className=" mb-2 active:opacity-50">
-                <InfoIcon />
-              </Pressable>
-            </Link>
-          ),
         }}
       ></Stack>
     </ScreenLayout>

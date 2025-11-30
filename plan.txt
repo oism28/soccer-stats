@@ -1,0 +1,353 @@
+
+# PLAN DE DESARROLLO - SOCCER STATS APP
+
+## ESTRUCTURA DEL PROYECTO
+```
+Soccer Stats App (React Native + Expo Router)
+├── Autenticación (JWT con cookies HttpOnly)
+├── Estadísticas de competiciones
+├── Sistema de favoritos
+└── Perfil de usuario
+```
+
+---
+
+##  PHASE 1: AUTENTICACIÓN Y PANTALLA STATS
+
+### 1.1 IMPLEMENTAR SISTEMA DE AUTENTICACIÓN
+
+#### 1.1.1 Crear pantalla de Login
+**Archivo:** `/app/login.js`
+- **UI/UX:**
+  - Fondo con gradiente oscuro (tema actual)
+  - Campo de entrada para correo electrónico
+  - Campo de entrada para contraseña
+  - Botón principal "Iniciar Sesión"
+  - Enlace secundario "¿No tienes cuenta? Regístrate"
+- **Funcionalidad:**
+  - Validación de campos (correo válido, contraseña no vacía)
+  - Llamada a `api/auth.js -> login()`
+  - Manejo de errores (mostrar mensaje si credenciales incorrectas)
+  - Redirección automática a tabs después del login exitoso
+- **Datos a enviar:**
+  ```json
+  {
+    "correo": "alexis.tuz@email.com",
+    "contrasena": "123"
+  }
+  ```
+
+#### 1.1.2 Crear pantalla de Registro
+**Archivo:** `/app/register.js`
+- **UI/UX:**
+  - Diseño consistente con login
+  - Campo para nombre completo
+  - Campo para correo electrónico
+  - Campo para contraseña
+  - Botón principal "Registrarse"
+  - Enlace "¿Ya tienes cuenta? Inicia sesión"
+- **Funcionalidad:**
+  - Validación completa de formulario
+  - Llamada a `api/auth.js -> registrar()`
+  - Redirección automática a login después del registro exitoso
+  - Mostrar mensaje de confirmación
+- **Datos a enviar:**
+  ```json
+  {
+    "nombre": "Alexis",
+    "correo": "alexis.tuz@email.com",
+    "contrasena": "123"
+  }
+  ```
+
+###  **MANEJO DE AUTENTICACIÓN CON COOKIES (ESENCIAL)**
+
+** PUNTO CRÍTICO A ENTENDER:**
+
+Cuando el usuario inicia sesión, el backend devuelve una cookie HttpOnly llamada `soccer-stats-token`. Esta es la **clave de toda la autenticación** y funciona así:
+
+1. **Al hacer login exitoso:**
+   - Backend retorna: `{ "id": ..., "nombre": ..., "correo": ..., "token": "..." }`
+   - Backend setea automáticamente la cookie `soccer-stats-token` (HttpOnly)
+   - Frontend NO necesita hacer nada con el token retornado
+
+2. **Para requests posteriores:**
+   - La cookie se envía automáticamente en TODAS las requests
+   - Backend detecta la cookie automáticamente  
+   - NO hay que poner headers `Authorization` ni manejar tokens
+   - Backend usa `@jwt_required` que inyecta el `usuario_id` automáticamente
+
+3. **Al hacer logout:**
+   - Llamar a `POST /usuarios/logout`
+   - Backend borra la cookie automáticamente
+   - Usuario queda desautenticado
+
+** REGLA DE ORO:** El frontend NUNCA maneja tokens manualmente. Todo es automático vía cookies.
+
+#### 1.1.3 Implementar lógica de autenticación en layout principal
+**Archivo:** `/app/_layout.js`
+- **Funcionalidad:**
+  - Verificar estado de autenticación al iniciar la app
+  - Llamada a `api/auth.js -> getUsuarios()` para validar cookie
+  - Redirección condicional:
+    - Si NO autenticado → mostrar `/login`
+    - Si autenticado → mostrar tabs normalmente
+- **Manejo de cookies (CRÍTICO):**
+  -  **IMPORTANTE:** Cuando se inicia sesión, el backend devuelve una cookie HttpOnly
+  - El frontend NO debe manejar nada de esa lógica manualmente
+  - La cookie `soccer-stats-token` se guarda automáticamente en el navegador
+  - Con esa cookie, al hacer cualquier otra request, el backend la detecta automáticamente
+  - **NO es necesario poner headers de autorización ni manejar tokens manualmente**
+  - La cookie se envía automáticamente en todas las requests futuras
+  - El backend usa el decorador `@jwt_required` que inyecta automáticamente el `usuario_id`
+
+#### 1.1.4 Actualizar perfil de usuario
+**Archivo:** `/app/(tabs)/perfil.js`
+- **Funcionalidad:**
+  - Cargar datos del usuario con `getUsuarios()`
+  - Mostrar información: nombre, correo, ID
+  - Botón de "Cerrar Sesión"
+  - Llamada a `logout()` y redirección a login
+- **Datos mostrados:**
+  ```json
+  {
+    "correo": "alexis.tuz@email.com",
+    "id": 3,
+    "nombre": "Alexis"
+  }
+  ```
+
+### 1.2 IMPLEMENTAR PANTALLA DE ESTADÍSTICAS
+
+#### 1.2.1 Actualizar API de competiciones
+**Archivo:** `/api/competiciones.js`
+- **Nuevos endpoints:**
+  ```javascript
+  // Obtener posiciones de una competición
+  export async function getPosiciones(competicionId = 2021) {
+    // GET: /competiciones/{competicionId}/posiciones
+  }
+  
+  // Obtener goleadores de una competición
+  export async function getGoleadores(competicionId = 2021) {
+    // GET: /competiciones/{competicionId}/goleadores
+  }
+  ```
+
+#### 1.2.2 Implementar sección de competiciones destacadas
+**Archivo:** `/app/(tabs)/stats.js`
+- **UI/UX:**
+  - Título "Competiciones Destacadas"
+  - Sección "Top 5 Posiciones" con tabla ordenada
+  - Sección "Top 5 Goleadores" con cards de jugadores
+  - Loading states para cada sección
+  - Refresh pull-to-refresh
+- **Datos a mostrar:**
+  - **Posiciones:** equipo, puntos, partidos jugados, diferencia goles
+  - **Goleadores:** nombre, equipo, goles, assists (si disponible)
+
+---
+
+##  PHASE 2: SISTEMA DE FAVORITOS - VISUALIZACIÓN
+
+### 2.1 CREAR API DE FAVORITOS
+**Archivo:** `/api/favoritos.js`
+- **Endpoints a implementar:**
+  ```javascript
+  // Obtener competiciones favoritas
+  export async function getCompeticionesFavoritas() {
+    // GET: /competiciones-favoritas
+  }
+  
+  // Obtener equipos favoritos
+  export async function getEquiposFavoritos() {
+    // GET: /equipos-favoritos  
+  }
+  
+  // Obtener jugadores favoritos
+  export async function getFavoritosPersonas() {
+    // GET: /favoritos-personas
+  }
+  ```
+
+### 2.2 IMPLEMENTAR PANTALLA DE FAVORITOS
+**Archivo:** `/app/(tabs)/favoritos.js`
+- **UI/UX:**
+  - Tres secciones con scroll horizontal:
+    1. "Mis Competiciones" usando `CompetitionCard`
+    2. "Mis Equipos" usando `TeamCard`
+    3. "Mis Jugadores" usando `PlayerCard`
+  - Estado vacío cuando no hay favoritos
+  - Loading states independientes
+  - Pull-to-refresh global
+- **Funcionalidad:**
+  - Cargar datos de cada endpoint al montar
+  - Manejar estados de carga y error
+  - Refresh automático al volver al tab
+
+### 2.3 VERIFICAR Y AJUSTAR COMPONENTES
+**Archivos:** `/components/PlayerCard.jsx`, `/components/TeamCard.jsx`, `/components/CompetitionCard.jsx`
+- **Verificaciones necesarias:**
+  - Prop `favorited` está siendo usada correctamente
+  - Callback `onToggleFavorite` está definido
+  - Diseño es consistente entre componentes
+  - Manejo de datos faltantes o malformados
+
+---
+
+##  PHASE 3: SISTEMA DE FAVORITOS - INTERACTIVIDAD
+
+### 3.1 EXTENDER API DE FAVORITOS
+**Archivo:** `/api/favoritos.js`
+- **Nuevos endpoints para acciones:**
+  ```javascript
+  // Agregar/quitar competición de favoritos
+  export async function toggleCompeticionFavorita(competicionId) {
+    // POST/DELETE: /competiciones-favoritas
+  }
+  
+  // Agregar/quitar equipo de favoritos  
+  export async function toggleEquipoFavorito(equipoId) {
+    // POST/DELETE: /equipos-favoritos
+  }
+  
+  // Agregar/quitar jugador de favoritos
+  export async function togglePersonaFavorita(personaId) {
+    // POST/DELETE: /favoritos-personas
+  }
+  ```
+
+### 3.2 IMPLEMENTAR LÓGICA DE FAVORITOS EN COMPONENTES
+
+#### 3.2.1 PlayerCard
+**Archivo:** `/components/PlayerCard.jsx`
+- **Funcionalidad:**
+  - Detectar si el jugador es favorito
+  - Cambiar ícono: ❤️ (favorito) / 🤍 (no favorito)
+  - Llamada a API al hacer clic
+  - Actualizar estado local inmediatamente
+  - Manejar errores de red
+
+#### 3.2.2 TeamCard  
+**Archivo:** `/components/TeamCard.jsx`
+- **Funcionalidad similar a PlayerCard**
+- **Consideraciones:**
+  - Mostrar escudo del equipo
+  - Información adicional (liga, país)
+
+#### 3.2.3 CompetitionCard
+**Archivo:** `/components/CompetitionCard.jsx`
+- **Funcionalidad similar a PlayerCard**
+- **Consideraciones:**
+  - Mostrar logo de la competición
+  - Información adicional (temporada, país)
+
+### 3.3 INTEGRAR FAVORITOS EN OTRAS PANTALLAS
+
+#### 3.3.1 Pantalla de Equipos
+**Archivo:** `/app/equipos.js`
+- Agregar funcionalidad de favoritos a cada TeamCard
+- Estado global de favoritos
+
+#### 3.3.2 Pantalla de Competiciones  
+**Archivo:** `/app/competiciones.js`
+- Agregar funcionalidad de favoritos a cada CompetitionCard
+- Estado global de favoritos
+
+---
+
+##  PHASE 4: MEJORAS Y PULIMIENTO
+
+### 4.1 MANEJO DE ESTADOS GLOBALES
+- **Contexto de Autenticación:**
+  - Estado global del usuario
+  - Funciones de login/logout
+  - Persistencia de sesión
+- **Contexto de Favoritos:**
+  - Lista global de favoritos por tipo
+  - Funciones para agregar/quitar
+  - Sincronización con API
+
+### 4.2 OPTIMIZACIONES
+- **Performance:**
+  - Memoización de componentes
+  - Lazy loading de imágenes
+  - Debounce en búsquedas
+- **UX:**
+  - Animaciones de transición
+  - Feedback haptic en favoritos
+  - Skeleton loading states
+
+### 4.3 MANEJO DE ERRORES
+- **Conectividad:**
+  - Detección de conexión
+  - Modo offline básico
+  - Retry automático
+- **Errores de API:**
+  - Mensajes de error amigables
+  - Fallbacks para datos faltantes
+
+---
+
+## 📋 CRITERIOS DE COMPLETITUD
+
+### Phase 1  Criterios:
+- [ ] Usuario puede registrarse con nombre, correo, contraseña
+- [ ] Usuario puede iniciar sesión con correo y contraseña  
+- [ ] Redirección automática según estado de autenticación
+- [ ] Pantalla de perfil muestra datos del usuario
+- [ ] Funcionalidad de logout funciona correctamente
+- [ ] Pantalla stats muestra top 5 posiciones y goleadores
+
+### Phase 2  Criterios:
+- [ ] Pantalla favoritos carga competiciones favoritas
+- [ ] Pantalla favoritos carga equipos favoritos
+- [ ] Pantalla favoritos carga jugadores favoritos
+- [ ] Todas las cards se renderizan correctamente
+- [ ] Estados de carga y error funcionan
+
+### Phase 3 Criterios:
+- [ ] Botón de favoritos funciona en PlayerCard
+- [ ] Botón de favoritos funciona en TeamCard  
+- [ ] Botón de favoritos funciona en CompetitionCard
+- [ ] Estado favorito/no favorito se refleja visualmente
+- [ ] Cambios se sincronizan con el backend
+- [ ] Favoritos se actualizan en tiempo real
+
+---
+
+## 🔧 CONFIGURACIÓN TÉCNICA
+
+### Dependencias actuales:
+- **React Native + Expo Router:** Navegación y estructura
+- **NativeWind:** Styling con Tailwind CSS
+- **React Native SVG:** Iconografía y gráficos
+
+### APIs Backend esperadas:
+```
+BASE_URL = "tu-backend-url"
+
+Autenticación:
+POST /usuarios/registrar
+POST /usuarios/login  
+POST /usuarios/logout
+GET  /usuarios
+
+Competiciones:
+GET  /competiciones/{id}/posiciones
+GET  /competiciones/{id}/goleadores
+
+Favoritos:
+GET    /competiciones-favoritas
+POST   /competiciones-favoritas  
+DELETE /competiciones-favoritas/{id}
+GET    /equipos-favoritos
+POST   /equipos-favoritos
+DELETE /equipos-favoritos/{id}
+GET    /favoritos-personas  
+POST   /favoritos-personas
+DELETE /favoritos-personas/{id}
+``` 
+
+
+

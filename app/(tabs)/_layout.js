@@ -1,5 +1,4 @@
 import { Tabs } from "expo-router";
-import { AboutIcon, HomeIcon } from "../../components/Icons";
 
 export default function TabsLayout() {
   return (
@@ -7,15 +6,22 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "black",
-          borderTopWidth: 5,
-          borderTopColor: "black",
-          height: 80,
+          backgroundColor: "#040D12",
+          borderTopWidth: 2,
+          borderTopColor: "#234E47",
+          height: 85,
+          paddingTop: 8,
+          paddingBottom: 8,
         },
-        tabBarActiveTintColor: "yellow",
-        tabBarInactiveTintColor: "gray",
+        tabBarActiveTintColor: "#93B1A6",
+        tabBarInactiveTintColor: "#5C8374",
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 12,
+          fontWeight: "600",
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
         },
       }}
     >
@@ -23,14 +29,18 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: HomeIcon,
         }}
       />
       <Tabs.Screen
-        name="about"
+        name="stats"
         options={{
-          title: "About",
-          tabBarIcon: AboutIcon,
+          title: "Stats",
+        }}
+      />
+      <Tabs.Screen
+        name="favoritos"
+        options={{
+          title: "Favoritos",
         }}
       />
     </Tabs>
