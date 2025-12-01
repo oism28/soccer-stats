@@ -15,7 +15,9 @@
     "android": {
         "adaptiveIcon": {
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": ["INTERNET"],
+      "usesCleartextTraffic": true
     },
     "web": {
       
