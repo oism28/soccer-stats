@@ -12,6 +12,10 @@ import {
     getGoleadores,
     getPosiciones,
 } from "../../api/competiciones";
+import {
+    toggleEquipoFavorito,
+    togglePersonaFavorita,
+} from "../../api/favoritos";
 import PlayerCard from "../../components/PlayerCard";
 import { ScreenLayout } from "../../components/ScreenLayout";
 import TeamCard from "../../components/TeamCard";
@@ -116,7 +120,25 @@ export default function Stats() {
 
   function toggleFavorite(kind, id) {
     const key = `${kind}:${id}`;
-    setFavorites(s => ({ ...s, [key]: !s[key] }));
+    const wasFavorited = favorites[key];
+    
+    // Actualizar estado local inmediatamente para feedback visual
+    setFavorites(prev => ({ ...prev, [key]: !wasFavorited }));
+
+    // Llamar a la API en background
+    (async () => {
+      try {
+        if (kind === "equipo") {
+          await toggleEquipoFavorito(id);
+        } else if (kind === "jugador") {
+          await togglePersonaFavorita(id);
+        }
+      } catch (error) {
+        console.error(`Error toggling ${kind} favorite:`, error);
+        // Revertir el cambio en caso de error
+        setFavorites(prev => ({ ...prev, [key]: wasFavorited }));
+      }
+    })();
   }
   return (
     <ScreenLayout>

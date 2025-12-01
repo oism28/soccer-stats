@@ -1,11 +1,11 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import CompetitionCard from "./CompetitionCard";
@@ -16,6 +16,11 @@ import { mockCompeticiones, mockEquipos, mockJugadores } from "../lib/mockData";
 
 import { getCompeticionById } from "../api/competiciones";
 import { getEquipoById } from "../api/equipos";
+import {
+    toggleCompeticionFavorita,
+    toggleEquipoFavorito,
+    togglePersonaFavorita,
+} from "../api/favoritos";
 import { getPersonaById } from "../api/personas";
 
 export function Main() {
@@ -94,7 +99,27 @@ export function Main() {
 
   function toggleFavorite(kind, id) {
     const key = `${kind}:${id}`;
-    setFavorites(s => ({ ...s, [key]: !s[key] }));
+    const wasFavorited = favorites[key];
+
+    // Actualizar estado local inmediatamente para feedback visual
+    setFavorites(prev => ({ ...prev, [key]: !wasFavorited }));
+
+    // Llamar a la API en background
+    (async () => {
+      try {
+        if (kind === "competicion") {
+          await toggleCompeticionFavorita(id);
+        } else if (kind === "equipo") {
+          await toggleEquipoFavorito(id);
+        } else if (kind === "jugador") {
+          await togglePersonaFavorita(id);
+        }
+      } catch (error) {
+        console.error(`Error toggling ${kind} favorite:`, error);
+        // Revertir el cambio en caso de error
+        setFavorites(prev => ({ ...prev, [key]: wasFavorited }));
+      }
+    })();
   }
 
   return (

@@ -1,5 +1,5 @@
 import { View } from "react-native";
 
 export function ScreenLayout({ children }) {
-  return <View className="flex-1 bg-[#040D12]">{children}</View>;
+  return <View className="flex-1 bg-[#040D12] pt-10">{children}</View>;
 }
