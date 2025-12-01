@@ -1,5 +1,5 @@
 import { Main } from "../../components/Main";
 
-export default function TabIndex() {
+export default function MainIndex() {
   return <Main />;
 }

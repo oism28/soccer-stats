@@ -1,33 +1,114 @@
-import { BASE_URL } from "./config";
+const BASE_URL = "https://soccer-stats-pc1w.onrender.com";
 
-const base = BASE_URL.replace(/\/$/, "");
+/**
+ * Registrar nuevo usuario
+ * @param {Object} datos - { nombre, correo, contrasena }
+ * @returns {Promise<Object>} Datos del usuario registrado
+ */
+export async function registrar(datos) {
+  try {
+    const response = await fetch(`${BASE_URL}/usuarios/registrar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(datos),
+      credentials: 'include', // CRÍTICO: Permite enviar/recibir cookies
+    });
 
-export async function registrar({ nombre, correo, contrasena }) {
-  const res = await fetch(`${base}/usuarios/registrar`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nombre, correo, contrasena }),
-  });
-  return res.json();
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.mensaje || 'Error al registrar usuario');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error en registrar:', error);
+    throw error;
+  }
 }
 
-export async function login({ correo, contrasena }) {
-  const res = await fetch(`${base}/usuarios/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ correo, contrasena }),
-  });
-  return res.json();
+/**
+ * Iniciar sesión
+ * @param {Object} credenciales - { correo, contrasena }
+ * @returns {Promise<Object>} Datos del usuario y token (la cookie se setea automáticamente)
+ */
+export async function login(credenciales) {
+  try {
+    const response = await fetch(`${BASE_URL}/usuarios/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credenciales),
+      credentials: 'include', // CRÍTICO: Permite recibir la cookie HttpOnly
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.mensaje || 'Credenciales incorrectas');
+    }
+
+    // El backend retorna: { id, nombre, correo, token }
+    // La cookie 'soccer-stats-token' se setea automáticamente
+    return data;
+  } catch (error) {
+    console.error('Error en login:', error);
+    throw error;
+  }
 }
 
+/**
+ * Cerrar sesión (elimina cookie del servidor)
+ * @returns {Promise<Object>} Mensaje de confirmación
+ */
 export async function logout() {
-  const res = await fetch(`${base}/usuarios/logout`, { method: "POST" });
-  return res.json();
+  try {
+    const response = await fetch(`${BASE_URL}/usuarios/logout`, {
+      method: 'POST',
+      credentials: 'include', // CRÍTICO: Envía la cookie para eliminarla
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.mensaje || 'Error al cerrar sesión');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error en logout:', error);
+    throw error;
+  }
 }
 
+/**
+ * Obtener datos del usuario autenticado
+ * Valida si la cookie es válida
+ * @returns {Promise<Object>} Datos del usuario actual
+ */
 export async function getUsuarios() {
-  const res = await fetch(`${base}/usuarios`, { method: "GET" });
-  return res.json();
+  try {
+    const response = await fetch(`${BASE_URL}/usuarios`, {
+      method: 'GET',
+      credentials: 'include', // CRÍTICO: Envía la cookie automáticamente
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.mensaje || 'No autenticado');
+    }
+
+    // Retorna: { id, nombre, correo }
+    return data;
+  } catch (error) {
+    console.error('Error en getUsuarios:', error);
+    throw error;
+  }
 }
 
-export default { registrar, login, logout, getUsuarios };
+// Exportar la BASE_URL por si se necesita en otros archivos
+export { BASE_URL };
